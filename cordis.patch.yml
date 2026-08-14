@@ -1,0 +1,15 @@
+# dsh-mermaid: render ```mermaid fences in DSH Web chat messages.
+# Inserted into the web profile by `dsh plugin --profile web add <this repo>`.
+- insert:
+    - id: mermaid
+      name: '@dsh-external/dsh-mermaid'
+      config:
+        # Diagram theme: 'auto' follows the GUI's light/dark (body[data-ds-dark-theme]).
+        theme: auto
+        # Mermaid's per-diagram text cap (default 50000).
+        maxTextSize: 50000
+        # Mermaid's edge-count guard; raised from the stock 500 for real graphs.
+        maxEdges: 2000
+        # Always strict: untrusted assistant output is sanitized (DOMPurify) and
+        # click handlers stay inert. 'loose' is never offered.
+        securityLevel: strict

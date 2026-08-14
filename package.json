@@ -1,0 +1,52 @@
+{
+  "name": "@dsh-external/dsh-mermaid",
+  "version": "0.1.0",
+  "description": "Render ```mermaid fences in DSH Web conversation messages as interactive-free SVG diagrams (lazy-loaded, strict security).",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": "./lib/client.js",
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsdown -c tsdown.config.mjs",
+    "check": "tsc -p tsconfig.json --noEmit --pretty false",
+    "prepare": "npm run build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "mermaid": "^11.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "jsdom": "^26.0.0",
+    "tsdown": "^0.22.14",
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": "^22.19 || >=24"
+  },
+  "license": "MIT"
+}
