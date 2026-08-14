@@ -20,6 +20,12 @@ import { CONFIG_ROUTE, DIST_PREFIX, MERMAID_DIST_FILE, MERMAID_BUNDLE, validateC
 
 const require = createRequire(import.meta.url)
 
+/** Stable Cordis plugin name. */
+export const name = 'mermaid'
+
+/** Service required before the routes can be registered. */
+export const inject = ['webServer']
+
 /** MIME types for the files the prefix route serves (the UMD build + its map). */
 const MIME: Record<string, string> = {
   '.js': 'text/javascript; charset=utf-8',

@@ -12,6 +12,10 @@
  * bundle in the client boot graph.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
+/** Stable Cordis plugin name. */
+export declare const name = "mermaid";
+/** Service required before the routes can be registered. */
+export declare const inject: string[];
 /**
  * Serve a file from the mermaid dist root with a traversal guard (the SPA
  * fallback would otherwise answer every miss with index.html).
