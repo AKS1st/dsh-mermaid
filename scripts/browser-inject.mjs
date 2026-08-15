@@ -28,6 +28,9 @@ await page.evaluate(() => {
   block.className = '_block_abc md-code-block'
   block.innerHTML = '<div class="_bannerWrap_abc"><div class="_banner_abc"><div class="_infostring_abc">mermaid</div><div class="_action_abc"><button>复制</button></div></div></div><pre class="_plain_abc"><code>graph TD\n  A[Start] --> B{Decision}\n  B -->|yes| C[Go]\n  B -->|no| D[Stop]</code></pre>'
   document.body.append(block)
+  // Rendering is viewport-driven: bring the injected fence into view so the
+  // lazy IntersectionObserver picks it up.
+  block.scrollIntoView({ block: 'center' })
 })
 
 await page.waitForTimeout(6000)

@@ -7,9 +7,13 @@
  *
  *   1. A MutationObserver watches the conversation for `.md-code-block`
  *      elements whose infostring is `mermaid`.
- *   2. The mermaid UMD build is loaded lazily (once) from the host route,
- *      then `mermaid.render()` produces an SVG that replaces the fence's
- *      `<pre>` body. The banner (language + copy button) stays.
+ *   2. The mermaid UMD build is loaded lazily (once) from the host route.
+ *      Rendering itself is viewport-driven: a fence only renders when it
+ *      scrolls into view (with a small preload margin), diagrams render one
+ *      at a time so many fences never block the page, and while a first
+ *      render is in flight a loading placeholder replaces the fence body.
+ *      `mermaid.render()` produces an SVG that replaces the fence's `<pre>`
+ *      body. The banner (language + copy button) stays.
  *   3. securityLevel is always strict: labels are DOMPurify-sanitized by
  *      mermaid itself and click handlers are never bound, matching the
  *      harness's untrusted-output policy for assistant text.
@@ -21,7 +25,8 @@
  */
 
 import { CONFIG_ROUTE, DIST_PREFIX, MERMAID_BUNDLE, DEFAULT_CONFIG, validateConfig, type MermaidConfig } from '../protocol.ts'
-import { scan, reRenderAll, applyTheme, type MermaidApi, type MermaidRenderEnv } from './dom.ts'
+import { scan, reRenderAll, applyTheme, dispose, type MermaidApi, type MermaidRenderEnv } from './dom.ts'
+import { mountStyles } from './styles.ts'
 
 /** The `window.mermaid` global the UMD build installs. */
 declare global {
@@ -85,6 +90,9 @@ function loadConfig(): Promise<MermaidConfig> {
  * @param ctx - client plugin context (effect lifecycle).
  */
 export function apply(ctx: ClientContext): void {
+  // Zoom button / overlay / loading-state styles, removed on unload.
+  ctx.effect(() => mountStyles(), 'dsh-mermaid: styles')
+
   void loadConfig().then((config) => {
     const env: MermaidRenderEnv = { loadMermaid, config }
 
@@ -108,6 +116,9 @@ export function apply(ctx: ClientContext): void {
     ctx.effect(() => () => {
       observer.disconnect()
       themeObserver.disconnect()
-    }, 'dsh-mermaid: fence observer + theme observer')
+      // Full module teardown: any open overlay, the lazy viewport observer,
+      // and the pending render queue.
+      dispose()
+    }, 'dsh-mermaid: fence observer + theme observer + dispose')
   })
 }
