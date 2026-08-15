@@ -16,16 +16,22 @@ client 包体积约 10 KB（gzip ~4 KB）；mermaid（~700 KB）只在真正出�
 
 ## 安装
 
+从 GitHub 仓库安装（构建在 `prepare` 脚本里自动执行）：
+
 ```sh
-# 方式一：本地目录（先构建）
+dsh plugin --profile web add github:AKS1st/dsh-mermaid
+dsh web   # 重启 web 服务使 profile 生效
+```
+
+> 若 pnpm 提示 git 依赖需要执行构建脚本（`ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED`），
+> 按提示把包加入 profile 的 `pnpm-workspace.yaml` 的 `allowBuilds` 后重试即可。
+
+本地开发（先构建再安装）：
+
+```sh
 npm install
 npm run build
 dsh plugin --profile web add .
-
-# 方式二：从 git 仓库安装（构建在 prepare 脚本里自动执行）
-dsh plugin --profile web add github:<owner>/dsh-mermaid
-
-# 重启 web 服务使 profile 生效
 dsh web
 ```
 
