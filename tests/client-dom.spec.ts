@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  CODE_BLOCK_SELECTOR, ERROR_ATTR, HOST_CLASS, INFOSTRING_SEGMENT, RENDERED_ATTR,
-  fenceSource, isMermaidBlock, reRenderAll, renderBlock, scan,
+  CODE_BLOCK_SELECTOR, ERROR_ATTR, HOST_CLASS, INFOSTRING_SEGMENT, OVERLAY_CLASS, RENDERED_ATTR, STAGE_CLASS, ZOOM_BUTTON_CLASS,
+  ensureZoomButton, fenceSource, isMermaidBlock, openOverlay, reRenderAll, renderBlock, scan,
   type MermaidApi, type MermaidRenderEnv,
 } from '../src/client/dom.ts'
 import { DEFAULT_CONFIG } from '../src/protocol.ts'
@@ -17,6 +17,7 @@ function mermaidBlock(source: string): HTMLElement {
   info.className = `_infostring_abc`
   info.textContent = 'mermaid'
   const action = document.createElement('div')
+  action.className = '_action_abc'
   const copy = document.createElement('button')
   copy.textContent = '复制'
   action.append(copy)
@@ -190,5 +191,77 @@ describe('reRenderAll', () => {
       expect(fakeMermaid.lastInit?.['theme']).toBe('dark')
     })
     expect(block.querySelector(`.${HOST_CLASS}`)).not.toBeNull()
+  })
+})
+
+describe('zoom overlay', () => {
+  it('rendering a block injects a zoom button left of the copy button', async () => {
+    const block = mermaidBlock('graph TD; A-->B')
+    await renderBlock(block, 'graph TD; A-->B', env())
+    const zoom = block.querySelector<HTMLButtonElement>(`.${ZOOM_BUTTON_CLASS}`)
+    expect(zoom).not.toBeNull()
+    // The zoom button sits before the copy button inside the action cell.
+    const action = block.querySelector('[class*="action"]')
+    const children = [...(action?.children ?? [])]
+    expect(children[0]).toBe(zoom)
+    expect(zoom!.textContent).toBe('⛶')
+  })
+
+  it('ensureZoomButton is idempotent', async () => {
+    const block = mermaidBlock('graph TD; A-->B')
+    ensureZoomButton(block)
+    ensureZoomButton(block)
+    expect(block.querySelectorAll(`.${ZOOM_BUTTON_CLASS}`)).toHaveLength(1)
+  })
+
+  it('openOverlay clones the SVG into a full-screen stage', () => {
+    const block = mermaidBlock('graph TD; A-->B')
+    block.innerHTML += `<div class="${HOST_CLASS}"><svg><g/></svg></div>`
+    openOverlay(block)
+    const overlay = document.querySelector(`.${OVERLAY_CLASS}`)
+    expect(overlay).not.toBeNull()
+    const stage = overlay!.querySelector(`.${STAGE_CLASS}`)
+    expect(stage).not.toBeNull()
+    expect(stage!.querySelector('svg')).not.toBeNull()
+    document.body.innerHTML = ''
+  })
+
+  it('wheel zooms the stage within bounds', () => {
+    const block = mermaidBlock('graph TD; A-->B')
+    block.innerHTML += `<div class="${HOST_CLASS}"><svg><g/></svg></div>`
+    openOverlay(block)
+    const stage = document.querySelector<HTMLElement>(`.${STAGE_CLASS}`)!
+    const overlay = document.querySelector<HTMLElement>(`.${OVERLAY_CLASS}`)!
+    const zoomIn = new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true })
+    overlay.dispatchEvent(zoomIn)
+    expect(stage.style.transform).toBe('scale(1.15)')
+    // A long streak of zoom-out hits the floor.
+    for (let i = 0; i < 40; i++) {
+      overlay.dispatchEvent(new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true }))
+    }
+    expect(stage.style.transform).toBe('scale(0.2)')
+    document.body.innerHTML = ''
+  })
+
+  it('closes on Escape and on backdrop click, not on diagram click', () => {
+    const block = mermaidBlock('graph TD; A-->B')
+    block.innerHTML += `<div class="${HOST_CLASS}"><svg><g/></svg></div>`
+    openOverlay(block)
+    const overlay = document.querySelector<HTMLElement>(`.${OVERLAY_CLASS}`)!
+    const stage = overlay.querySelector(`.${STAGE_CLASS}`)!
+
+    // Clicking the diagram keeps the overlay open.
+    stage.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    expect(document.querySelector(`.${OVERLAY_CLASS}`)).not.toBeNull()
+
+    // Escape closes it.
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    expect(document.querySelector(`.${OVERLAY_CLASS}`)).toBeNull()
+
+    // Backdrop click closes it.
+    openOverlay(block)
+    const overlay2 = document.querySelector<HTMLElement>(`.${OVERLAY_CLASS}`)!
+    overlay2.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    expect(document.querySelector(`.${OVERLAY_CLASS}`)).toBeNull()
   })
 })

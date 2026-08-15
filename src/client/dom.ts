@@ -32,6 +32,12 @@ export const RENDERED_ATTR = 'data-dsh-mermaid'
 export const ERROR_ATTR = 'data-dsh-mermaid-error'
 /** Class of the host div holding the rendered SVG. */
 export const HOST_CLASS = 'dsh-mermaid'
+/** Class of the zoom button injected left of the copy button. */
+export const ZOOM_BUTTON_CLASS = 'dsh-mermaid-zoom'
+/** Class of the full-screen zoom overlay. */
+export const OVERLAY_CLASS = 'dsh-mermaid-overlay'
+/** Class of the overlay's zoomable stage (the SVG lives inside it). */
+export const STAGE_CLASS = 'dsh-mermaid-stage'
 
 /** Whether `block` is a mermaid fence (infostring text is exactly `mermaid`). */
 export function isMermaidBlock(block: HTMLElement): boolean {
@@ -107,6 +113,7 @@ export async function renderBlock(block: HTMLElement, source: string, env: Merma
     else if (pre !== null) pre.replaceWith(host)
     renderedSources.set(block, source)
     block.setAttribute(RENDERED_ATTR, '1')
+    ensureZoomButton(block)
   } catch (error) {
     block.setAttribute(ERROR_ATTR, '1')
     // Keep the plain code block as the fallback; the error is visible in the
@@ -124,6 +131,79 @@ export function reRenderAll(env: MermaidRenderEnv): void {
     const source = renderedSources.get(block)
     if (source !== undefined) void renderBlock(block, source, env)
   }
+}
+
+/** The banner's action cell (copy button seat); matched by its readable class segment. */
+const ACTION_SEGMENT = 'action'
+
+/**
+ * Inject the zoom button left of the copy button in the block's banner, once.
+ * The button opens the rendered SVG in a full-screen overlay (see
+ * {@link openOverlay}). Idempotent: re-renders (theme flip) keep one button.
+ * @param block - the `.md-code-block` element.
+ */
+export function ensureZoomButton(block: HTMLElement): void {
+  if (block.querySelector(`.${ZOOM_BUTTON_CLASS}`) !== null) return
+  const action = block.querySelector<HTMLElement>(`[class*="${ACTION_SEGMENT}"]`)
+  if (action === null) return
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = ZOOM_BUTTON_CLASS
+  button.title = '放大'
+  button.setAttribute('aria-label', '放大 mermaid 图')
+  button.textContent = '⛶'
+  button.addEventListener('click', () => openOverlay(block))
+  // Prepend: the copy button stays last in the action cell.
+  action.prepend(button)
+}
+
+/** Wheel-zoom scale bounds. */
+const MIN_SCALE = 0.2
+const MAX_SCALE = 8
+/** Wheel-zoom step per notch. */
+const ZOOM_STEP = 1.15
+
+/**
+ * Open the full-screen zoom overlay for a rendered mermaid block. The overlay
+ * clones the block's SVG into a centered stage, zooms with the mouse wheel
+ * (bounded), and closes on background click or Escape. Every listener is
+ * removed when the overlay closes.
+ * @param block - the `.md-code-block` element.
+ */
+export function openOverlay(block: HTMLElement): void {
+  const svg = block.querySelector(`.${HOST_CLASS} svg`)
+  if (svg === null) return
+  const overlay = document.createElement('div')
+  overlay.className = OVERLAY_CLASS
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:rgba(0,0,0,.6);cursor:zoom-out;'
+  const stage = document.createElement('div')
+  stage.className = STAGE_CLASS
+  stage.style.cssText = 'max-width:94vw;max-height:94vh;overflow:auto;background:#fff;border-radius:8px;box-shadow:0 24px 64px rgba(0,0,0,.45);transform-origin:center center;cursor:grab;'
+  stage.append(svg.cloneNode(true))
+  overlay.append(stage)
+  document.body.append(overlay)
+
+  let scale = 1
+  const onWheel = (event: WheelEvent): void => {
+    event.preventDefault()
+    const factor = event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP
+    scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * factor))
+    stage.style.transform = `scale(${scale})`
+  }
+  const close = (): void => {
+    overlay.remove()
+    window.removeEventListener('keydown', onKeydown)
+    overlay.removeEventListener('wheel', onWheel)
+  }
+  const onKeydown = (event: KeyboardEvent): void => {
+    if (event.key === 'Escape') close()
+  }
+  overlay.addEventListener('click', (event) => {
+    // Only a click on the backdrop closes; clicking the diagram itself does not.
+    if (event.target === overlay) close()
+  })
+  overlay.addEventListener('wheel', onWheel, { passive: false })
+  window.addEventListener('keydown', onKeydown)
 }
 
 /**

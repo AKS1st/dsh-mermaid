@@ -30,6 +30,12 @@ export declare const RENDERED_ATTR = "data-dsh-mermaid";
 export declare const ERROR_ATTR = "data-dsh-mermaid-error";
 /** Class of the host div holding the rendered SVG. */
 export declare const HOST_CLASS = "dsh-mermaid";
+/** Class of the zoom button injected left of the copy button. */
+export declare const ZOOM_BUTTON_CLASS = "dsh-mermaid-zoom";
+/** Class of the full-screen zoom overlay. */
+export declare const OVERLAY_CLASS = "dsh-mermaid-overlay";
+/** Class of the overlay's zoomable stage (the SVG lives inside it). */
+export declare const STAGE_CLASS = "dsh-mermaid-stage";
 /** Whether `block` is a mermaid fence (infostring text is exactly `mermaid`). */
 export declare function isMermaidBlock(block: HTMLElement): boolean;
 /** The fence source: the `<pre>` text minus the trailing newline CodeBlock trims on display. */
@@ -55,6 +61,21 @@ export declare function renderBlock(block: HTMLElement, source: string, env: Mer
  * @param env - the render environment.
  */
 export declare function reRenderAll(env: MermaidRenderEnv): void;
+/**
+ * Inject the zoom button left of the copy button in the block's banner, once.
+ * The button opens the rendered SVG in a full-screen overlay (see
+ * {@link openOverlay}). Idempotent: re-renders (theme flip) keep one button.
+ * @param block - the `.md-code-block` element.
+ */
+export declare function ensureZoomButton(block: HTMLElement): void;
+/**
+ * Open the full-screen zoom overlay for a rendered mermaid block. The overlay
+ * clones the block's SVG into a centered stage, zooms with the mouse wheel
+ * (bounded), and closes on background click or Escape. Every listener is
+ * removed when the overlay closes.
+ * @param block - the `.md-code-block` element.
+ */
+export declare function openOverlay(block: HTMLElement): void;
 /**
  * Process every currently-settled mermaid fence in the document. Settled-only
  * by construction: while a message streams, CodeBlock renders fences with an
