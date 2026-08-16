@@ -27,7 +27,8 @@ The zoom overlay auto-fits the diagram to the screen (near full-screen with a sm
   5. `mermaid.render()` produces an SVG that replaces the fence's `<pre>` body; the language banner and copy button stay (copy still copies the source);
   6. `securityLevel` is always `strict`: labels are DOMPurify-sanitized by mermaid itself and click handlers are never bound;
   7. Theme follows the GUI: `theme: auto` reads `body[data-ds-dark-theme]` and re-renders **visible** diagrams when the attribute flips (offscreen diagrams refresh when they re-enter the viewport);
-  8. The banner zoom button opens a **full-screen overlay**: the diagram is auto-fitted to the screen on open (near full-screen, centered, with a small margin), the wheel zooms relative to that size, **dragging with the left or middle button pans** at any zoom (clamped so the diagram can't be lost), and clicking the backdrop or pressing Esc closes it.
+  8. The banner zoom button opens a **full-screen overlay**: the diagram is auto-fitted to the screen on open (near full-screen, centered, with a small margin), the wheel zooms relative to that size, **dragging with the left or middle button pans** at any zoom (clamped so the diagram can't be lost), and clicking the backdrop or pressing Esc closes it;
+  9. **Visible render failures**: when a first render fails the source code block is kept and an error summary appears below it (long messages are truncated, hover for the full text), with one-click **copy the error** or **send to the AI to fix** (fills the report plus source into the input and sends it, simulating the user pasting the error to the AI).
 
 The client package is ~10 KB (gzip ~4 KB); mermaid (~700 KB) is fetched on demand only when a mermaid fence actually appears — it never enters the boot graph.
 
@@ -85,7 +86,7 @@ Override with `- set:` or `- update:` in the profile's `cordis.patch.yml`.
 ## Security model
 
 - Assistant output is untrusted: `securityLevel` is locked to `strict`; HTML in labels is DOMPurify-sanitized by mermaid itself; `bindFunctions` is never called and click handlers stay inert.
-- On a render failure the plain-text code block is kept (error HTML is never rendered); errors are visible in the console.
+- On a render failure the plain-text code block is kept (error HTML is never rendered), and an error summary appears below the block (copyable, or sendable to the AI to fix); the full error also goes to the console.
 
 ## Known limitations
 

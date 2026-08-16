@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  CODE_BLOCK_SELECTOR, ERROR_ATTR, HOST_CLASS, INFOSTRING_SEGMENT, LOADING_CLASS, OVERLAY_CLASS, RENDERED_ATTR, STAGE_CLASS, STAGE_DRAGGING_CLASS, ZOOM_BUTTON_CLASS,
-  __resetForTests, ensureZoomButton, fenceSource, isMermaidBlock, openOverlay, reRenderAll, renderBlock, scan,
+  CODE_BLOCK_SELECTOR, ERROR_ATTR, ERROR_BAR_CLASS, HOST_CLASS, INFOSTRING_SEGMENT, LOADING_CLASS, OVERLAY_CLASS, RENDERED_ATTR, STAGE_CLASS, STAGE_DRAGGING_CLASS, ZOOM_BUTTON_CLASS,
+  __resetForTests, buildErrorReport, ensureZoomButton, fenceSource, isMermaidBlock, openOverlay, reRenderAll, renderBlock, scan, sendToAI, showErrorBar,
   type MermaidApi, type MermaidRenderEnv,
 } from '../src/client/dom.ts'
 import { STYLE_ID, mountStyles } from '../src/client/styles.ts'
@@ -228,6 +228,12 @@ describe('renderBlock', () => {
       expect(block.querySelector('pre')).not.toBeNull()
       expect(block.hasAttribute(ERROR_ATTR)).toBe(true)
       expect(block.hasAttribute(RENDERED_ATTR)).toBe(false)
+      // An error summary bar appears below the block with the message + actions.
+      const bar = block.querySelector<HTMLElement>(`.${ERROR_BAR_CLASS}`)
+      expect(bar).not.toBeNull()
+      expect(bar!.textContent).toContain('parse failed')
+      expect(bar!.querySelector('button')?.textContent).toBe('复制报错')
+      expect([...(bar!.querySelectorAll('button') ?? [])].map(b => b.textContent)).toContain('发送给 AI 修复')
     } finally {
       spy.mockRestore()
     }
@@ -417,9 +423,75 @@ describe('loading placeholder', () => {
         expect(block.hasAttribute(ERROR_ATTR)).toBe(true)
       })
       expect(block.querySelector(`.${HOST_CLASS}`)).toBeNull()
+      expect(block.querySelector(`.${ERROR_BAR_CLASS}`)).not.toBeNull()
     } finally {
       spy.mockRestore()
     }
+  })
+})
+
+describe('error summary bar', () => {
+  it('buildErrorReport includes the error and the failing source', () => {
+    const report = buildErrorReport('graph TD\n  A --> B', 'parse error on line 2')
+    expect(report).toContain('parse error on line 2')
+    expect(report).toContain('```mermaid')
+    expect(report).toContain('graph TD\n  A --> B')
+  })
+
+  it('shows a truncated summary with copy and send actions', () => {
+    const longMessage = 'Parse error on line 33: ' + 'x'.repeat(300)
+    const block = mermaidBlock('graph TD; A-->B')
+    showErrorBar(block, 'graph TD; A-->B', new Error(longMessage))
+    const bar = block.querySelector<HTMLElement>(`.${ERROR_BAR_CLASS}`)!
+    const message = bar.querySelector(`.${ERROR_BAR_CLASS}-message`)!
+    // Displayed summary is truncated; the full message rides the title.
+    expect(message.textContent!.length).toBeLessThan(longMessage.length)
+    expect(message.textContent).toContain('…')
+    expect(message.title).toBe(longMessage)
+    const labels = [...bar.querySelectorAll('button')].map(b => b.textContent)
+    expect(labels).toEqual(['复制报错', '发送给 AI 修复'])
+  })
+
+  it('copy button copies the full report to the clipboard', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    const block = mermaidBlock('graph TD; A-->B')
+    showErrorBar(block, 'graph TD; A-->B', new Error('boom'))
+    const copyButton = [...block.querySelectorAll<HTMLButtonElement>(`.${ERROR_BAR_CLASS} button`)].find(b => b.textContent === '复制报错')!
+    copyButton.click()
+    await vi.waitFor(() => expect(writeText).toHaveBeenCalled())
+    const copied = writeText.mock.calls[0][0] as string
+    expect(copied).toContain('boom')
+    expect(copied).toContain('graph TD; A-->B')
+    expect(copied).toContain('```mermaid')
+  })
+
+  it('send button fills the conversation input and presses Enter', async () => {
+    const textarea = document.createElement('textarea')
+    textarea.setAttribute('data-phase', 'ready')
+    document.body.append(textarea)
+    const dispatchSpy = vi.spyOn(textarea, 'dispatchEvent')
+    const block = mermaidBlock('graph TD; A-->B')
+    showErrorBar(block, 'graph TD; A-->B', new Error('boom'))
+    const sendButton = [...block.querySelectorAll<HTMLButtonElement>(`.${ERROR_BAR_CLASS} button`)].find(b => b.textContent === '发送给 AI 修复')!
+    sendButton.click()
+    expect(textarea.value).toContain('mermaid 渲染失败')
+    expect(textarea.value).toContain('boom')
+    expect(textarea.value).toContain('```mermaid')
+    await vi.waitFor(() => {
+      expect(dispatchSpy.mock.calls.some(([event]) => event instanceof KeyboardEvent && event.key === 'Enter')).toBe(true)
+    })
+  })
+
+  it('send falls back to copying when no conversation input is present', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    const block = mermaidBlock('graph TD; A-->B')
+    showErrorBar(block, 'graph TD; A-->B', new Error('boom'))
+    const sendButton = [...block.querySelectorAll<HTMLButtonElement>(`.${ERROR_BAR_CLASS} button`)].find(b => b.textContent === '发送给 AI 修复')!
+    sendButton.click()
+    await vi.waitFor(() => expect(writeText).toHaveBeenCalled())
+    expect(writeText.mock.calls[0][0]).toContain('boom')
   })
 })
 

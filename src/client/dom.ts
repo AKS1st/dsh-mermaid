@@ -49,6 +49,8 @@ export const HOST_CLASS = 'dsh-mermaid'
 export const LOADING_CLASS = 'dsh-mermaid-loading'
 /** Class of the zoom button injected left of the copy button. */
 export const ZOOM_BUTTON_CLASS = 'dsh-mermaid-zoom'
+/** Class of the error summary bar shown below a failed render. */
+export const ERROR_BAR_CLASS = 'dsh-mermaid-error'
 /** Class of the full-screen zoom overlay. */
 export const OVERLAY_CLASS = 'dsh-mermaid-overlay'
 /** Class of the overlay's zoomable stage (the SVG lives inside it). */
@@ -316,10 +318,12 @@ export async function renderBlock(
     const hadSvg = block.querySelector(`.${HOST_CLASS} svg`) !== null
     if (!hadSvg) {
       // First render failed: restore the plain code block as the fallback
-      // (untrusted content must not render error HTML) and stop retrying.
+      // (untrusted content must not render error HTML) and stop retrying,
+      // then surface an error summary below the block with copy / send-to-AI.
       restorePre(block)
       block.setAttribute(ERROR_ATTR, '1')
       forgetBlock(block)
+      showErrorBar(block, source, error)
     }
     console.error('dsh-mermaid: render failed', error)
     return false
@@ -349,6 +353,131 @@ export function reRenderAll(env: MermaidRenderEnv): void {
     }
     if (observer === undefined || visibleBlocks.has(block)) enqueueRender(block, 'refresh')
   }
+}
+
+// --- error summary + copy / send-to-AI ---------------------------------------
+
+/** Cap the error text shown inline (the full message rides the report/title). */
+const ERROR_SUMMARY_MAX = 180
+
+/** The plain error message, whatever was thrown. */
+function errorMessage(error: unknown): string {
+  if (error instanceof Error && error.message !== '') return error.message
+  return String(error)
+}
+
+/**
+ * The report copied or sent to the AI: the error plus the failing source, so
+ * the recipient has everything needed to fix the diagram.
+ * @param source - the fence source that failed to render.
+ * @param message - the renderer's error message.
+ */
+export function buildErrorReport(source: string, message: string): string {
+  return [
+    'mermaid 渲染失败，请帮我修复。',
+    '',
+    '错误信息：',
+    message,
+    '',
+    '图表源码：',
+    '```mermaid',
+    source,
+    '```',
+  ].join('\n')
+}
+
+/** Copy text to the clipboard (navigator API with an execCommand fallback). */
+async function copyText(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text)
+    return
+  } catch {
+    // Fallback path (non-secure context / missing Clipboard API).
+  }
+  const ta = document.createElement('textarea')
+  ta.value = text
+  ta.style.position = 'fixed'
+  ta.style.opacity = '0'
+  document.body.append(ta)
+  ta.select()
+  try { document.execCommand('copy') } catch { /* ignore */ }
+  ta.remove()
+}
+
+/** Briefly swap a button's label to give feedback. */
+function flash(button: HTMLButtonElement, label: string): void {
+  const original = button.textContent
+  button.textContent = label
+  window.setTimeout(() => { button.textContent = original }, 1200)
+}
+
+/**
+ * Simulate the user sending the report to the AI: fill the conversation
+ * input's textarea (through React's native value setter so the draft machine
+ * picks it up) and press Enter, exactly as if the user typed it. If the input
+ * is missing, locked, or the machine rejects the draft (e.g. mid-turn), falls
+ * back to copying the report instead.
+ * @param report - the text to send.
+ * @returns whether the report was actually placed in the input and Enter sent
+ * (false = the report was copied instead).
+ */
+export async function sendToAI(report: string): Promise<boolean> {
+  const textarea = document.querySelector<HTMLTextAreaElement>('textarea[data-phase]')
+  if (textarea === null || textarea.disabled || textarea.readOnly) {
+    await copyText(report)
+    return false
+  }
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set
+  if (setter !== undefined) setter.call(textarea, report)
+  else textarea.value = report
+  textarea.dispatchEvent(new Event('input', { bubbles: true }))
+  // Let React/onChange flush the draft; if the machine rejected it (locked or
+  // busy), the controlled value snaps back empty — hand the user a copy.
+  await new Promise<void>(resolve => window.setTimeout(resolve, 30))
+  if (textarea.value === '') {
+    await copyText(report)
+    return false
+  }
+  textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true }))
+  return true
+}
+
+/**
+ * Show the error summary bar below a failed fence: a truncated error summary
+ * plus "copy the report" and "send to the AI" actions. Idempotent per block.
+ * @param block - the `.md-code-block` element.
+ * @param source - the fence source that failed.
+ * @param error - the thrown render error.
+ */
+export function showErrorBar(block: HTMLElement, source: string, error: unknown): void {
+  if (block.querySelector(`.${ERROR_BAR_CLASS}`) !== null) return
+  const message = errorMessage(error)
+  const report = buildErrorReport(source, message)
+  const summary = message.length > ERROR_SUMMARY_MAX ? `${message.slice(0, ERROR_SUMMARY_MAX)}…` : message
+
+  const bar = document.createElement('div')
+  bar.className = ERROR_BAR_CLASS
+  const text = document.createElement('div')
+  text.className = `${ERROR_BAR_CLASS}-message`
+  text.title = message
+  text.textContent = `渲染失败：${summary}`
+  const actions = document.createElement('div')
+  actions.className = `${ERROR_BAR_CLASS}-actions`
+  const copyButton = document.createElement('button')
+  copyButton.type = 'button'
+  copyButton.textContent = '复制报错'
+  copyButton.addEventListener('click', () => {
+    void copyText(report).then(() => flash(copyButton, '已复制'))
+  })
+  const sendButton = document.createElement('button')
+  sendButton.type = 'button'
+  sendButton.textContent = '发送给 AI 修复'
+  sendButton.addEventListener('click', () => {
+    void sendToAI(report).then(sent => flash(sendButton, sent ? '已发送' : '已复制'))
+  })
+  actions.append(copyButton, sendButton)
+  bar.append(text, actions)
+  block.append(bar)
 }
 
 // --- zoom button + overlay --------------------------------------------------

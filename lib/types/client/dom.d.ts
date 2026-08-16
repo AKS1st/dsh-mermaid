@@ -47,6 +47,8 @@ export declare const HOST_CLASS = "dsh-mermaid";
 export declare const LOADING_CLASS = "dsh-mermaid-loading";
 /** Class of the zoom button injected left of the copy button. */
 export declare const ZOOM_BUTTON_CLASS = "dsh-mermaid-zoom";
+/** Class of the error summary bar shown below a failed render. */
+export declare const ERROR_BAR_CLASS = "dsh-mermaid-error";
 /** Class of the full-screen zoom overlay. */
 export declare const OVERLAY_CLASS = "dsh-mermaid-overlay";
 /** Class of the overlay's zoomable stage (the SVG lives inside it). */
@@ -88,6 +90,32 @@ export declare function renderBlock(block: HTMLElement, source: string, env: Mer
  * @param env - the render environment.
  */
 export declare function reRenderAll(env: MermaidRenderEnv): void;
+/**
+ * The report copied or sent to the AI: the error plus the failing source, so
+ * the recipient has everything needed to fix the diagram.
+ * @param source - the fence source that failed to render.
+ * @param message - the renderer's error message.
+ */
+export declare function buildErrorReport(source: string, message: string): string;
+/**
+ * Simulate the user sending the report to the AI: fill the conversation
+ * input's textarea (through React's native value setter so the draft machine
+ * picks it up) and press Enter, exactly as if the user typed it. If the input
+ * is missing, locked, or the machine rejects the draft (e.g. mid-turn), falls
+ * back to copying the report instead.
+ * @param report - the text to send.
+ * @returns whether the report was actually placed in the input and Enter sent
+ * (false = the report was copied instead).
+ */
+export declare function sendToAI(report: string): Promise<boolean>;
+/**
+ * Show the error summary bar below a failed fence: a truncated error summary
+ * plus "copy the report" and "send to the AI" actions. Idempotent per block.
+ * @param block - the `.md-code-block` element.
+ * @param source - the fence source that failed.
+ * @param error - the thrown render error.
+ */
+export declare function showErrorBar(block: HTMLElement, source: string, error: unknown): void;
 /**
  * Inject the zoom button left of the copy button in the block's banner, once.
  * The button opens the rendered SVG in a full-screen overlay (see
