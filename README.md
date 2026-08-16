@@ -6,11 +6,11 @@
 
 | 亮色主题 · 会话内（未放大） | 暗色主题 · 会话内（未放大） |
 | --- | --- |
-| ![亮色主题会话内渲染](asserts/main-page-white.png) | ![暗色主题会话内渲染](asserts/main-page-dark.png) |
+| ![亮色主题会话内渲染](assets/main-page-white.png) | ![暗色主题会话内渲染](assets/main-page-dark.png) |
 
 | 亮色主题 · 放大浮层 | 暗色主题 · 放大浮层 |
 | --- | --- |
-| ![亮色主题放大浮层](asserts/fangda-white.png) | ![暗色主题放大浮层](asserts/fangda-dark.png) |
+| ![亮色主题放大浮层](assets/fangda-white.png) | ![暗色主题放大浮层](assets/fangda-dark.png) |
 
 放大浮层自动适配屏幕（接近全屏、四周留白），滚轮缩放，按住左键/中键可拖动平移；`theme: auto` 时图表颜色跟随 GUI 亮/暗主题。
 
