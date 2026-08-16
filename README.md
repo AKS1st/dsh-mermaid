@@ -1,5 +1,7 @@
 # dsh-mermaid
 
+[English](README.en.md)
+
 在 DSH Web 会话消息中把 ` ```mermaid ` 代码围栏渲染为 SVG 图表的独立插件，通过 `dsh plugin` 安装进 web profile。
 
 ## 效果预览
