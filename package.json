@@ -1,6 +1,6 @@
 {
   "name": "@dsh-external/dsh-mermaid",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Render ```mermaid fences in DSH Web conversation messages as interactive-free SVG diagrams (lazy-loaded, strict security).",
   "type": "module",
   "repository": {

@@ -84,8 +84,8 @@ const ZOOM_BUTTON_CSS = `
  * Overlay + stage: previously inline `style.cssText`, now theme-aware classes
  * so the white stage no longer clashes with dark mode. The stage fills the
  * viewport (94vw × 94vh) with the diagram fitted inside and acts as a clipped
- * viewport: `margin: auto` centers the SVG, and the pan translate (see
- * dom.ts openOverlay) moves the diagram within it at any zoom.
+ * viewport; the pan translate (see dom.ts openOverlay) moves the diagram
+ * within it at any zoom.
  */
 const OVERLAY_CSS = `
 .dsh-mermaid-overlay {
@@ -101,6 +101,14 @@ const OVERLAY_CSS = `
   width: 94vw;
   height: 94vh;
   display: flex;
+  /* Center the diagram's LAYOUT box even when it is taller/wider than the
+     stage: flex centering overflows equally on both sides, so the SVG's
+     transform-origin (its layout center) stays at the stage center and the
+     pan/zoom is symmetric. margin: auto would collapse to 0 once the box
+     overflows and anchor it at the top, shifting the origin and making one
+     pan edge unreachable. */
+  align-items: center;
+  justify-content: center;
   /* Pan rides the SVG transform (translate), so the stage is a clipped
      viewport: no scrollbars, the diagram moves inside it and is cut at the
      edges when zoomed beyond it. */
@@ -121,14 +129,13 @@ const OVERLAY_CSS = `
 .dsh-mermaid-stage svg {
   /* The JS overlay pin sets an explicit px width/height inline (mermaid emits
      width="100%", which would otherwise stretch the diagram to the full stage
-     before the fit transform applies); these rules center the box and keep
-     the transform-origin at its center. */
+     before the fit transform applies); centering comes from the stage's flex
+     alignment so the transform-origin stays centered even on overflow. */
   display: block;
   width: auto;
   height: auto;
   max-width: none;
   max-height: none;
-  margin: auto;
   transform-origin: center center;
 }
 `

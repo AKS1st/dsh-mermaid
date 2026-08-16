@@ -133,10 +133,57 @@ await page.waitForTimeout(200)
 const afterBackdrop = await page.evaluate(() => !!document.querySelector('.dsh-mermaid-overlay'))
 console.log('AFTER-BACKDROP open:', afterBackdrop)
 
+// Regression: a diagram TALLER than the stage must pan symmetrically — both
+// the top and bottom edges must become flush with the stage at the drag
+// limits (flex centering keeps the transform-origin at the stage center).
+await page.evaluate(() => {
+  const block = document.createElement('div')
+  block.className = '_block_abc md-code-block'
+  block.innerHTML = '<div class="_bannerWrap_abc"><div class="_banner_abc"><div class="_infostring_abc">mermaid</div><div class="_action_abc"><button>复制</button></div></div></div><pre class="_plain_abc"><code>flowchart TD\n  subgraph A["tall"]\n    X1["x"]\n    X2["x"]\n    X3["x"]\n    X4["x"]\n  end\n  X1 --> X2\n  X2 --> X3\n  X3 --> X4</code></pre>'
+  document.body.append(block)
+  block.scrollIntoView({ block: 'center' })
+})
+await page.waitForTimeout(4000)
+await page.evaluate(() => {
+  const btns = document.querySelectorAll('.dsh-mermaid-zoom')
+  btns[btns.length - 1].click()
+})
+await page.waitForTimeout(400)
+await page.evaluate(() => {
+  const overlay = document.querySelector('.dsh-mermaid-overlay')
+  for (let i = 0; i < 8; i++) {
+    overlay.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true }))
+  }
+})
+const tallBox = await page.locator('.dsh-mermaid-stage').boundingBox()
+const gaps = () => page.evaluate(() => {
+  const stage = document.querySelector('.dsh-mermaid-stage')
+  const svg = stage.querySelector('svg')
+  const sr = stage.getBoundingClientRect()
+  const vr = svg.getBoundingClientRect()
+  return { topGap: Math.round(vr.top - sr.top), bottomGap: Math.round(sr.bottom - vr.bottom) }
+})
+// Drag to the top limit (drag down), then the bottom limit (drag up).
+await page.mouse.move(tallBox.x + tallBox.width / 2, tallBox.y + tallBox.height / 2)
+await page.mouse.down({ button: 'left' })
+await page.mouse.move(tallBox.x + tallBox.width / 2, tallBox.y + tallBox.height / 2 + 2000, { steps: 10 })
+await page.mouse.up({ button: 'left' })
+const topLimit = await gaps()
+await page.mouse.move(tallBox.x + tallBox.width / 2, tallBox.y + tallBox.height / 2)
+await page.mouse.down({ button: 'left' })
+await page.mouse.move(tallBox.x + tallBox.width / 2, tallBox.y + tallBox.height / 2 - 2000, { steps: 10 })
+await page.mouse.up({ button: 'left' })
+const bottomLimit = await gaps()
+// Both edges must be reachable: at the top drag limit the TOP is flush with
+// the stage top; at the bottom drag limit the BOTTOM is flush with the stage
+// bottom (the opposite edge then legitimately overflows).
+const symmetricPan = topLimit.topGap <= 2 && bottomLimit.bottomGap <= 2
+console.log('TALL PAN:', JSON.stringify({ topLimit, bottomLimit, symmetricPan }))
+
 console.log('--- errors ---')
 console.log(errors.slice(-5).join('\n') || '(none)')
 await browser.close()
 
-if (pre.zoomBtn !== true || !opened.overlayOpen || !opened.stageHasSvg || zoomed === null || !panned || !leftPanned || afterEsc !== false || afterBackdrop !== false) {
+if (pre.zoomBtn !== true || !opened.overlayOpen || !opened.stageHasSvg || zoomed === null || !panned || !leftPanned || !symmetricPan || afterEsc !== false || afterBackdrop !== false) {
   process.exit(1)
 }
