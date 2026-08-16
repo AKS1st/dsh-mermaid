@@ -117,6 +117,16 @@ export declare function sendToAI(report: string): Promise<boolean>;
  */
 export declare function showErrorBar(block: HTMLElement, source: string, error: unknown): void;
 /**
+ * Remove stray mermaid error-render artifacts left in the page body by older
+ * runs (before `suppressErrorRendering`, mermaid appended its built-in
+ * "Syntax error in text" diagram to `body` — the undismissable bottom-left
+ * popup). Strict mode wraps it in a `i`-prefixed sandbox iframe, loose mode
+ * in a `d`-prefixed div; the prefixes are ours (render ids are
+ * `dsh-mermaid-<n>`). Called once at apply time so a previously stuck popup
+ * clears on plugin reload.
+ */
+export declare function removeStrayErrorElements(): void;
+/**
  * Inject the zoom button left of the copy button in the block's banner, once.
  * The button opens the rendered SVG in a full-screen overlay (see
  * {@link openOverlay}). Idempotent: re-renders (theme flip) keep one button.

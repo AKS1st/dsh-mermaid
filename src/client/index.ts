@@ -25,7 +25,7 @@
  */
 
 import { CONFIG_ROUTE, DIST_PREFIX, MERMAID_BUNDLE, DEFAULT_CONFIG, validateConfig, type MermaidConfig } from '../protocol.ts'
-import { scan, reRenderAll, applyTheme, dispose, type MermaidApi, type MermaidRenderEnv } from './dom.ts'
+import { scan, reRenderAll, applyTheme, dispose, removeStrayErrorElements, type MermaidApi, type MermaidRenderEnv } from './dom.ts'
 import { mountStyles } from './styles.ts'
 
 /** The `window.mermaid` global the UMD build installs. */
@@ -98,6 +98,9 @@ export function apply(ctx: ClientContext): void {
 
     // Initial pass covers already-settled messages (session replay, history).
     scan(env)
+    // Clear any mermaid error-render artifacts older versions left stuck in
+    // the page body (the bottom-left "Syntax error in text" popup).
+    removeStrayErrorElements()
 
     // Settled messages mount new DOM (or swap streaming → settled nodes), so
     // watch the whole document for added nodes and re-scan.

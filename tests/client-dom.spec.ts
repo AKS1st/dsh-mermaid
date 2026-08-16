@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   CODE_BLOCK_SELECTOR, ERROR_ATTR, ERROR_BAR_CLASS, HOST_CLASS, INFOSTRING_SEGMENT, LOADING_CLASS, OVERLAY_CLASS, RENDERED_ATTR, STAGE_CLASS, STAGE_DRAGGING_CLASS, ZOOM_BUTTON_CLASS,
-  __resetForTests, buildErrorReport, ensureZoomButton, fenceSource, isMermaidBlock, openOverlay, reRenderAll, renderBlock, scan, sendToAI, showErrorBar,
+  __resetForTests, buildErrorReport, ensureZoomButton, fenceSource, isMermaidBlock, openOverlay, reRenderAll, removeStrayErrorElements, renderBlock, scan, sendToAI, showErrorBar,
   type MermaidApi, type MermaidRenderEnv,
 } from '../src/client/dom.ts'
 import { STYLE_ID, mountStyles } from '../src/client/styles.ts'
@@ -214,6 +214,8 @@ describe('renderBlock', () => {
     expect(host!.innerHTML).toContain('<svg')
     expect(block.hasAttribute(RENDERED_ATTR)).toBe(true)
     expect(fakeMermaid.lastInit?.['securityLevel']).toBe('strict')
+    // mermaid must never render its built-in error diagram into the page.
+    expect(fakeMermaid.lastInit?.['suppressErrorRendering']).toBe(true)
   })
 
   it('keeps the plain text and marks an error when mermaid throws', async () => {
@@ -492,6 +494,20 @@ describe('error summary bar', () => {
     sendButton.click()
     await vi.waitFor(() => expect(writeText).toHaveBeenCalled())
     expect(writeText.mock.calls[0][0]).toContain('boom')
+  })
+
+  it('removeStrayErrorElements clears mermaid error artifacts but keeps normal nodes', () => {
+    const strayDiv = document.createElement('div')
+    strayDiv.id = 'ddsh-mermaid-3'
+    const strayIframe = document.createElement('iframe')
+    strayIframe.id = 'idsh-mermaid-4'
+    const normal = document.createElement('div')
+    normal.id = 'dsh-mermaid-5'
+    document.body.append(strayDiv, strayIframe, normal)
+    removeStrayErrorElements()
+    expect(document.getElementById('ddsh-mermaid-3')).toBeNull()
+    expect(document.getElementById('idsh-mermaid-4')).toBeNull()
+    expect(document.getElementById('dsh-mermaid-5')).not.toBeNull()
   })
 })
 

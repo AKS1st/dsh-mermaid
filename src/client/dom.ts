@@ -84,6 +84,10 @@ export function applyTheme(mermaid: MermaidApi, config: MermaidConfig, dark: boo
     maxTextSize: config.maxTextSize,
     maxEdges: config.maxEdges,
     fontFamily: 'inherit',
+    // Never let mermaid render its built-in "Syntax error" diagram into the
+    // page (with no target container it lands at the bottom-left of the body
+    // and cannot be dismissed). Failures surface through our own error bar.
+    suppressErrorRendering: true,
   })
 }
 
@@ -478,6 +482,21 @@ export function showErrorBar(block: HTMLElement, source: string, error: unknown)
   actions.append(copyButton, sendButton)
   bar.append(text, actions)
   block.append(bar)
+}
+
+/**
+ * Remove stray mermaid error-render artifacts left in the page body by older
+ * runs (before `suppressErrorRendering`, mermaid appended its built-in
+ * "Syntax error in text" diagram to `body` — the undismissable bottom-left
+ * popup). Strict mode wraps it in a `i`-prefixed sandbox iframe, loose mode
+ * in a `d`-prefixed div; the prefixes are ours (render ids are
+ * `dsh-mermaid-<n>`). Called once at apply time so a previously stuck popup
+ * clears on plugin reload.
+ */
+export function removeStrayErrorElements(): void {
+  for (const el of document.querySelectorAll('[id^="ddsh-mermaid-"], [id^="idsh-mermaid-"], [id^="cdsh-mermaid-"]')) {
+    el.remove()
+  }
 }
 
 // --- zoom button + overlay --------------------------------------------------
