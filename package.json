@@ -46,7 +46,6 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && tsdown -c tsdown.config.mjs",
     "check": "tsc -p tsconfig.json --noEmit --pretty false",
-    "prepare": "npm run build",
     "test": "vitest run"
   },
   "dependencies": {
