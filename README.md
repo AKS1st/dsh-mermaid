@@ -2,6 +2,18 @@
 
 在 DSH Web 会话消息中把 ` ```mermaid ` 代码围栏渲染为 SVG 图表的独立插件，通过 `dsh plugin` 安装进 web profile。
 
+## 效果预览
+
+| 亮色主题 · 会话内（未放大） | 暗色主题 · 会话内（未放大） |
+| --- | --- |
+| ![亮色主题会话内渲染](asserts/main-page-white.png) | ![暗色主题会话内渲染](asserts/main-page-dark.png) |
+
+| 亮色主题 · 放大浮层 | 暗色主题 · 放大浮层 |
+| --- | --- |
+| ![亮色主题放大浮层](asserts/fangda-white.png) | ![暗色主题放大浮层](asserts/fangda-dark.png) |
+
+放大浮层自动适配屏幕（接近全屏、四周留白），滚轮缩放，按住左键/中键可拖动平移；`theme: auto` 时图表颜色跟随 GUI 亮/暗主题。
+
 ## 工作方式
 
 - **Host 半部**（`src/index.ts`）：注册 `webServer` 前缀路由 `/mermaid-dist`，从插件自己的 `node_modules/mermaid` 惰性提供 UMD 构建，并提供固定的 `config.json` 端点。
