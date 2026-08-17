@@ -24,7 +24,7 @@ describe('live dsh web instance', () => {
     expect(config.theme).toBe('auto')
     expect(config.securityLevel).toBe('strict')
 
-    const bundle = await fetch(`${BASE}/plugins/@dsh-external/dsh-mermaid/client.js`)
+    const bundle = await fetch(`${BASE}/plugins/dsh-mermaid/client.js`)
     expect(bundle.status).toBe(200)
     expect(await bundle.text()).toContain('window.__ModuleLoader__.load')
 
@@ -77,11 +77,11 @@ describe('live dsh web instance', () => {
     // The real client bundle, exactly as the browser fetches it.
     let apply: ((ctx: { effect(cb: () => () => void): void }) => void) | undefined
     const loader = { load({ id, factory }: { id: string; factory: (r: unknown) => Record<string, unknown> }) {
-      expect(id).toBe('@dsh-external/dsh-mermaid')
+      expect(id).toBe('dsh-mermaid')
       apply = factory(() => { throw new Error('no require needed') })['apply'] as typeof apply
     } }
     Object.defineProperty(window, '__ModuleLoader__', { value: loader })
-    const bundleSource = await fetch(`${BASE}/plugins/@dsh-external/dsh-mermaid/client.js`).then(r => r.text())
+    const bundleSource = await fetch(`${BASE}/plugins/dsh-mermaid/client.js`).then(r => r.text())
     const bundleScript = window.document.createElement('script')
     bundleScript.textContent = bundleSource
     window.document.head.append(bundleScript)

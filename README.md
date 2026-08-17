@@ -56,7 +56,7 @@ dsh web
 卸载：
 
 ```sh
-dsh plugin --profile web remove @dsh-external/dsh-mermaid
+dsh plugin --profile web remove dsh-mermaid
 ```
 
 ## 配置
@@ -66,7 +66,7 @@ dsh plugin --profile web remove @dsh-external/dsh-mermaid
 ```yaml
 - insert:
     - id: mermaid
-      name: '@dsh-external/dsh-mermaid'
+      name: 'dsh-mermaid'
       config:
         theme: auto
         maxTextSize: 50000

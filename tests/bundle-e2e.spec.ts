@@ -85,7 +85,7 @@ describe('built client bundle end-to-end', () => {
     // top-level `window.__ModuleLoader__.load(...)` handoff.
     let apply: ((ctx: { effect(cb: () => () => void): void }) => void) | undefined
     const loader = { load({ id, factory }: { id: string; factory: (r: unknown) => Record<string, unknown> }) {
-      expect(id).toBe('@dsh-external/dsh-mermaid')
+      expect(id).toBe('dsh-mermaid')
       const exports_ = factory(() => { throw new Error('no require needed') })
       apply = exports_['apply'] as typeof apply
     } }

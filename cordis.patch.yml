@@ -2,7 +2,7 @@
 # Inserted into the web profile by `dsh plugin --profile web add <this repo>`.
 - insert:
     - id: mermaid
-      name: '@dsh-external/dsh-mermaid'
+      name: 'dsh-mermaid'
       config:
         # Diagram theme: 'auto' follows the GUI's light/dark (body[data-ds-dark-theme]).
         theme: auto

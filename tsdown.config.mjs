@@ -1,4 +1,4 @@
-const id = '@dsh-external/dsh-mermaid'
+const id = 'dsh-mermaid'
 
 export default [{
   entry: ['lib/types/index.js', 'lib/types/invariant.js'],

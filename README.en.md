@@ -56,7 +56,7 @@ dsh web
 Uninstall:
 
 ```sh
-dsh plugin --profile web remove @dsh-external/dsh-mermaid
+dsh plugin --profile web remove dsh-mermaid
 ```
 
 ## Configuration
@@ -66,7 +66,7 @@ The bundle applies this configuration by default:
 ```yaml
 - insert:
     - id: mermaid
-      name: '@dsh-external/dsh-mermaid'
+      name: 'dsh-mermaid'
       config:
         theme: auto
         maxTextSize: 50000
