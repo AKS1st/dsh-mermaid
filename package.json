@@ -2,10 +2,17 @@
   "name": "dsh-mermaid",
   "version": "0.5.0",
   "description": "Render ```mermaid fences in DSH Web conversation messages as interactive-free SVG diagrams (lazy-loaded, strict security).",
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AKS1st/dsh-mermaid.git"
+  },
+  "homepage": "https://github.com/AKS1st/dsh-mermaid#readme",
+  "bugs": {
+    "url": "https://github.com/AKS1st/dsh-mermaid/issues"
   },
   "main": "./lib/index.js",
   "types": "./lib/types/index.d.ts",
@@ -45,13 +52,17 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && tsdown -c tsdown.config.mjs",
-    "check": "tsc -p tsconfig.json --noEmit --pretty false",
-    "test": "vitest run"
+    "check": "tsc -p tsconfig.json --noEmit --pretty false && tsc -p tsconfig.compat.json --pretty false",
+    "test": "vitest run",
+    "test:compat": "vitest run tests/mermaid-compat.spec.ts --reporter=verbose",
+    "test:compat:browser": "node scripts/mermaid-compat-browser.mjs",
+    "prepack": "npm run build"
   },
   "dependencies": {
-    "mermaid": "^11.16.0"
+    "mermaid": "11.16.1"
   },
   "devDependencies": {
+    "@types/jsdom": "^21.1.7",
     "@types/node": "^22.0.0",
     "jsdom": "^26.0.0",
     "playwright": "^1.62.1",
