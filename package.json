@@ -45,13 +45,16 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && tsdown -c tsdown.config.mjs",
-    "check": "tsc -p tsconfig.json --noEmit --pretty false",
-    "test": "vitest run"
+    "check": "tsc -p tsconfig.json --noEmit --pretty false && tsc -p tsconfig.compat.json --pretty false",
+    "test": "vitest run",
+    "test:compat": "vitest run tests/mermaid-compat.spec.ts --reporter=verbose",
+    "test:compat:browser": "node scripts/mermaid-compat-browser.mjs"
   },
   "dependencies": {
     "mermaid": "^11.16.0"
   },
   "devDependencies": {
+    "@types/jsdom": "^21.1.7",
     "@types/node": "^22.0.0",
     "jsdom": "^26.0.0",
     "playwright": "^1.62.1",

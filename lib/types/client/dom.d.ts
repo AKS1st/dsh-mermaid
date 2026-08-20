@@ -91,26 +91,26 @@ export declare function renderBlock(block: HTMLElement, source: string, env: Mer
  */
 export declare function reRenderAll(env: MermaidRenderEnv): void;
 /**
- * The report copied or sent to the AI: the error plus the failing source, so
- * the recipient has everything needed to fix the diagram.
+ * The report copied or sent to the agent: the error first, then the failing
+ * source, so the recipient has everything needed to fix the diagram.
  * @param source - the fence source that failed to render.
  * @param message - the renderer's error message.
  */
 export declare function buildErrorReport(source: string, message: string): string;
 /**
- * Simulate the user sending the report to the AI: fill the conversation
- * input's textarea (through React's native value setter so the draft machine
- * picks it up) and press Enter, exactly as if the user typed it. If the input
- * is missing, locked, or the machine rejects the draft (e.g. mid-turn), falls
- * back to copying the report instead.
+ * Send the report to the current agent in one click. The report is written via
+ * the textarea's native setter so React's draft machine observes it. Once the
+ * controlled state has flushed, prefer DSH's real Send button; while an
+ * ordinary agent is running that seat becomes Stop, so fall back to the same
+ * Enter submission path used by the composer. If the input is unavailable or
+ * rejects the draft, copy the report instead.
  * @param report - the text to send.
- * @returns whether the report was actually placed in the input and Enter sent
- * (false = the report was copied instead).
+ * @returns whether a submit action was issued (false = the report was copied).
  */
-export declare function sendToAI(report: string): Promise<boolean>;
+export declare function sendToAgent(report: string): Promise<boolean>;
 /**
  * Show the error summary bar below a failed fence: a truncated error summary
- * plus "copy the report" and "send to the AI" actions. Idempotent per block.
+ * plus "copy the report" and "send to the agent" actions. Idempotent per block.
  * @param block - the `.md-code-block` element.
  * @param source - the fence source that failed.
  * @param error - the thrown render error.

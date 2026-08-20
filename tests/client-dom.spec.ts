@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   CODE_BLOCK_SELECTOR, ERROR_ATTR, ERROR_BAR_CLASS, HOST_CLASS, INFOSTRING_SEGMENT, LOADING_CLASS, OVERLAY_CLASS, RENDERED_ATTR, STAGE_CLASS, STAGE_DRAGGING_CLASS, ZOOM_BUTTON_CLASS,
-  __resetForTests, buildErrorReport, ensureZoomButton, fenceSource, isMermaidBlock, openOverlay, reRenderAll, removeStrayErrorElements, renderBlock, scan, sendToAI, showErrorBar,
+  __resetForTests, buildErrorReport, ensureZoomButton, fenceSource, isMermaidBlock, openOverlay, reRenderAll, removeStrayErrorElements, renderBlock, scan, sendToAgent, showErrorBar,
   type MermaidApi, type MermaidRenderEnv,
 } from '../src/client/dom.ts'
 import { STYLE_ID, mountStyles } from '../src/client/styles.ts'
@@ -235,7 +235,7 @@ describe('renderBlock', () => {
       expect(bar).not.toBeNull()
       expect(bar!.textContent).toContain('parse failed')
       expect(bar!.querySelector('button')?.textContent).toBe('复制报错')
-      expect([...(bar!.querySelectorAll('button') ?? [])].map(b => b.textContent)).toContain('发送给 AI 修复')
+      expect([...(bar!.querySelectorAll('button') ?? [])].map(b => b.textContent)).toContain('发送给 Agent 修复')
     } finally {
       spy.mockRestore()
     }
@@ -438,6 +438,7 @@ describe('error summary bar', () => {
     expect(report).toContain('parse error on line 2')
     expect(report).toContain('```mermaid')
     expect(report).toContain('graph TD\n  A --> B')
+    expect(report.indexOf('parse error on line 2')).toBeLessThan(report.indexOf('graph TD\n  A --> B'))
   })
 
   it('shows a truncated summary with copy and send actions', () => {
@@ -451,7 +452,7 @@ describe('error summary bar', () => {
     expect(message.textContent).toContain('…')
     expect(message.title).toBe(longMessage)
     const labels = [...bar.querySelectorAll('button')].map(b => b.textContent)
-    expect(labels).toEqual(['复制报错', '发送给 AI 修复'])
+    expect(labels).toEqual(['复制报错', '发送给 Agent 修复'])
   })
 
   it('copy button copies the full report to the clipboard', async () => {
@@ -468,21 +469,44 @@ describe('error summary bar', () => {
     expect(copied).toContain('```mermaid')
   })
 
-  it('send button fills the conversation input and presses Enter', async () => {
+  it('send button fills the conversation input and clicks DSH\'s submit button', async () => {
+    const card = document.createElement('div')
+    card.setAttribute('data-composer-card', '')
     const textarea = document.createElement('textarea')
     textarea.setAttribute('data-phase', 'ready')
-    document.body.append(textarea)
-    const dispatchSpy = vi.spyOn(textarea, 'dispatchEvent')
+    const hostSend = document.createElement('button')
+    hostSend.setAttribute('aria-label', '发送消息')
+    const submit = vi.fn()
+    hostSend.addEventListener('click', submit)
+    card.append(textarea, hostSend)
+    document.body.append(card)
     const block = mermaidBlock('graph TD; A-->B')
     showErrorBar(block, 'graph TD; A-->B', new Error('boom'))
-    const sendButton = [...block.querySelectorAll<HTMLButtonElement>(`.${ERROR_BAR_CLASS} button`)].find(b => b.textContent === '发送给 AI 修复')!
+    const sendButton = [...block.querySelectorAll<HTMLButtonElement>(`.${ERROR_BAR_CLASS} button`)].find(b => b.textContent === '发送给 Agent 修复')!
     sendButton.click()
-    expect(textarea.value).toContain('mermaid 渲染失败')
+    expect(textarea.value).toContain('Mermaid 渲染错误')
     expect(textarea.value).toContain('boom')
     expect(textarea.value).toContain('```mermaid')
-    await vi.waitFor(() => {
-      expect(dispatchSpy.mock.calls.some(([event]) => event instanceof KeyboardEvent && event.key === 'Enter')).toBe(true)
-    })
+    await vi.waitFor(() => expect(submit).toHaveBeenCalledOnce())
+  })
+
+  it('uses Enter to submit while DSH replaces Send with Stop', async () => {
+    const card = document.createElement('div')
+    card.setAttribute('data-composer-card', '')
+    const textarea = document.createElement('textarea')
+    textarea.setAttribute('data-phase', 'ready')
+    const stop = document.createElement('button')
+    stop.setAttribute('aria-label', '停止生成')
+    const stopClick = vi.fn()
+    stop.addEventListener('click', stopClick)
+    card.append(textarea, stop)
+    document.body.append(card)
+    const dispatchSpy = vi.spyOn(textarea, 'dispatchEvent')
+
+    await sendToAgent('report')
+
+    expect(dispatchSpy.mock.calls.some(([event]) => event instanceof KeyboardEvent && event.key === 'Enter')).toBe(true)
+    expect(stopClick).not.toHaveBeenCalled()
   })
 
   it('send falls back to copying when no conversation input is present', async () => {
@@ -490,7 +514,7 @@ describe('error summary bar', () => {
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
     const block = mermaidBlock('graph TD; A-->B')
     showErrorBar(block, 'graph TD; A-->B', new Error('boom'))
-    const sendButton = [...block.querySelectorAll<HTMLButtonElement>(`.${ERROR_BAR_CLASS} button`)].find(b => b.textContent === '发送给 AI 修复')!
+    const sendButton = [...block.querySelectorAll<HTMLButtonElement>(`.${ERROR_BAR_CLASS} button`)].find(b => b.textContent === '发送给 Agent 修复')!
     sendButton.click()
     await vi.waitFor(() => expect(writeText).toHaveBeenCalled())
     expect(writeText.mock.calls[0][0]).toContain('boom')

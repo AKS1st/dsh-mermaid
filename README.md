@@ -28,7 +28,7 @@
   6. `securityLevel` 恒为 `strict`，标签经 mermaid 内置 DOMPurify 消毒，且从不绑定点击处理；
   7. 主题跟随 GUI：`theme: auto` 读取 `body[data-ds-dark-theme]`，属性翻转时自动重渲染**视口内**的既有图表（视口外的图在重新进入视口时更新）；
   8. 横幅放大按钮打开**全屏浮层**：图表打开时自动适配屏幕（接近全屏、四周留白、垂直/水平居中），滚轮在此基础上缩放，**按住左键或中键拖动**可平移画面（不放大也能拖，边界自动限制不让图跑丢），背景点击或 Esc 关闭；
-  9. **渲染失败可见化**：首次渲染失败时保留源码块，并在图框下方显示错误摘要（超长自动截断、悬停查看全文），支持一键**复制报错**或**发送给 AI 修复**（自动把报错+源码填入输入框并发送，模拟用户将报错发给 AI）。
+  9. **渲染失败可见化**：首次渲染失败时保留源码块，并在图框下方显示错误摘要（超长自动截断、悬停查看全文），支持一键**复制报错**或**发送给 Agent 修复**（按“错误信息 → Mermaid 原文”组织内容，并直接提交给当前 Agent）。
 
 client 包体积约 10 KB（gzip ~4 KB）；mermaid（~700 KB）只在真正出现 mermaid 围栏时才按需加载，不进入 boot 图。
 
@@ -86,10 +86,17 @@ dsh plugin --profile web remove dsh-mermaid
 ## 安全模型
 
 - 助手输出不可信：`securityLevel` 锁定 `strict`，标签中的 HTML 由 mermaid 内部 DOMPurify 消毒；不调用 `bindFunctions`，点击处理保持惰性。
-- 渲染失败时保留原纯文本代码块（绝不渲染错误 HTML），并在图框下方显示错误摘要（可复制、可一键发送给 AI 修复）；控制台同时输出完整错误。
+- 渲染失败时保留原纯文本代码块（绝不渲染错误 HTML），并在图框下方显示错误摘要（可复制、可一键直接发送给当前 Agent 修复）；控制台同时输出完整错误。
 
 ## 已知限制
 
 - 依赖主前端 `CodeBlock` 的稳定钩子（字面量类 `md-code-block` 与 infostring 文本）；上游渲染器重构时需要同步更新选择器。
 - 流式输出期间不渲染，定格后才渲染。
 - `securityLevel: strict` 下 mermaid 的点击交互不可用。
+
+## Mermaid 兼容性验证
+
+仓库 lockfile 的 Mermaid 11.16.1 基线覆盖全部 38 个公共图类型，并维护
+`zenuml` 外部语法负例。快速解析/渲染检查运行 `npm run test:compat`；真实浏览器
+全量 SVG 渲染运行 `npm run test:compat:browser`。维护规则见
+[docs/mermaid-support.md](docs/mermaid-support.md)。

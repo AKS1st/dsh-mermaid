@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": false,
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": [
+    "tests/fixtures/mermaid-cases.ts",
+    "tests/helpers/real-mermaid.ts",
+    "tests/mermaid-compat.spec.ts"
+  ],
+  "exclude": ["lib", "node_modules"]
+}
