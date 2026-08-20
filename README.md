@@ -4,15 +4,18 @@
 
 在 DSH Web 会话消息中把 ` ```mermaid ` 代码围栏渲染为 SVG 图表的独立插件，通过 `dsh plugin` 安装进 web profile。
 
+> 这是由社区独立维护的插件，并非 DeepSeek AI 官方组件。DSH 仍处于开发者预览阶段；
+> 本项目会明确记录其兼容性基线和使用的宿主接口。
+
 ## 效果预览
 
 | 亮色主题 · 会话内（未放大） | 暗色主题 · 会话内（未放大） |
 | --- | --- |
-| ![亮色主题会话内渲染](assets/main-page-white.png) | ![暗色主题会话内渲染](assets/main-page-dark.png) |
+| ![亮色主题会话内渲染](https://raw.githubusercontent.com/AKS1st/dsh-mermaid/main/assets/main-page-white.png) | ![暗色主题会话内渲染](https://raw.githubusercontent.com/AKS1st/dsh-mermaid/main/assets/main-page-dark.png) |
 
 | 亮色主题 · 放大浮层 | 暗色主题 · 放大浮层 |
 | --- | --- |
-| ![亮色主题放大浮层](assets/fangda-white.png) | ![暗色主题放大浮层](assets/fangda-dark.png) |
+| ![亮色主题放大浮层](https://raw.githubusercontent.com/AKS1st/dsh-mermaid/main/assets/fangda-white.png) | ![暗色主题放大浮层](https://raw.githubusercontent.com/AKS1st/dsh-mermaid/main/assets/fangda-dark.png) |
 
 放大浮层自动适配屏幕（接近全屏、四周留白），滚轮缩放，按住左键/中键可拖动平移；`theme: auto` 时图表颜色跟随 GUI 亮/暗主题。
 
@@ -34,15 +37,14 @@ client 包体积约 10 KB（gzip ~4 KB）；mermaid（~700 KB）只在真正出�
 
 ## 安装
 
-从 GitHub 仓库安装（构建在 `prepare` 脚本里自动执行）：
+从 GitHub 仓库安装：
 
 ```sh
 dsh plugin --profile web add github:AKS1st/dsh-mermaid
 dsh web   # 重启 web 服务使 profile 生效
 ```
 
-> 若 pnpm 提示 git 依赖需要执行构建脚本（`ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED`），
-> 按提示把包加入 profile 的 `pnpm-workspace.yaml` 的 `allowBuilds` 后重试即可。
+仓库提交了可复现的 `lib/` 构建产物，因此 GitHub 安装不需要执行依赖生命周期脚本。
 
 本地开发（先构建再安装）：
 
@@ -93,6 +95,17 @@ dsh plugin --profile web remove dsh-mermaid
 - 依赖主前端 `CodeBlock` 的稳定钩子（字面量类 `md-code-block` 与 infostring 文本）；上游渲染器重构时需要同步更新选择器。
 - 流式输出期间不渲染，定格后才渲染。
 - `securityLevel: strict` 下 mermaid 的点击交互不可用。
+
+## DSH 兼容性
+
+- DSH `0.1.0-rc.5`：完成本地运行验证。
+- DSH `0.1.0-rc.8`：已核对官方 `CodeBlock`、输入框与中英文 locale 源码契约。
+- Mermaid 固定为 `11.16.1`；38 种已注册公共图类型通过真实浏览器渲染矩阵，
+  外部 ZenUML 语法作为预期不支持负例维护。
+
+DSH 尚未提供代码围栏渲染扩展点，因此当前版本使用受测试、集中封装的 DOM 兼容层；
+具体宿主钩子、升级检查清单和计划中的正式 API 迁移见
+[DSH compatibility](docs/dsh-compatibility.md)。
 
 ## Mermaid 兼容性验证
 

@@ -24,5 +24,7 @@ jobs:
       - run: npm run build
       - name: Verify committed build artifacts
         run: git diff --exit-code -- lib
+      - name: Verify npm package contents
+        run: npm pack --dry-run
       - run: npx playwright install --with-deps chromium
       - run: npm run test:compat:browser

@@ -4,10 +4,10 @@ Current lockfile baseline (Mermaid 11.16.1): all 38 registered public diagram
 detectors render successfully. The catalog also keeps `zenuml` as a known
 external syntax that the bundled full Mermaid build must reject.
 
-The runtime dependency currently uses `^11.16.0`, so this is a tested baseline,
-not a promise about future Mermaid releases. Re-run both suites whenever the
-lockfile changes; detector coverage makes newly added or removed types fail
-until the catalog is reviewed.
+The runtime dependency is pinned to `11.16.1`, so installed behavior matches
+this tested baseline. Re-run both suites before changing that exact version;
+detector coverage makes newly added or removed types fail until the catalog is
+reviewed.
 
 The compatibility catalog lives in
 `tests/fixtures/mermaid-cases.ts`. It contains one minimal source example for

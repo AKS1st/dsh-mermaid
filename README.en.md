@@ -4,15 +4,18 @@
 
 A standalone plugin that renders ` ```mermaid ` code fences in DSH Web conversation messages as SVG diagrams. Install it into a web profile with `dsh plugin`.
 
+> This is an independently maintained community plugin, not an official DeepSeek AI component.
+> DSH is still in developer preview; this project records its tested baseline and host-interface dependencies explicitly.
+
 ## Preview
 
 | Light theme · in conversation (not zoomed) | Dark theme · in conversation (not zoomed) |
 | --- | --- |
-| ![Light theme, in conversation](assets/main-page-white.png) | ![Dark theme, in conversation](assets/main-page-dark.png) |
+| ![Light theme, in conversation](https://raw.githubusercontent.com/AKS1st/dsh-mermaid/main/assets/main-page-white.png) | ![Dark theme, in conversation](https://raw.githubusercontent.com/AKS1st/dsh-mermaid/main/assets/main-page-dark.png) |
 
 | Light theme · zoom overlay | Dark theme · zoom overlay |
 | --- | --- |
-| ![Light theme, zoom overlay](assets/fangda-white.png) | ![Dark theme, zoom overlay](assets/fangda-dark.png) |
+| ![Light theme, zoom overlay](https://raw.githubusercontent.com/AKS1st/dsh-mermaid/main/assets/fangda-white.png) | ![Dark theme, zoom overlay](https://raw.githubusercontent.com/AKS1st/dsh-mermaid/main/assets/fangda-dark.png) |
 
 The zoom overlay auto-fits the diagram to the screen (near full-screen with a small margin), zooms with the mouse wheel, and pans by dragging with the left or middle button. With `theme: auto` the diagram colors follow the GUI light/dark theme.
 
@@ -34,15 +37,14 @@ The client package is ~10 KB (gzip ~4 KB); mermaid (~700 KB) is fetched on deman
 
 ## Install
 
-From the GitHub repository (the build runs automatically in the `prepare` script):
+From the GitHub repository:
 
 ```sh
 dsh plugin --profile web add github:AKS1st/dsh-mermaid
 dsh web   # restart the web service for the profile to take effect
 ```
 
-> If pnpm reports that the git dependency needs to run build scripts (`ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED`),
-> add the package to `allowBuilds` in the profile's `pnpm-workspace.yaml` and retry.
+The repository commits reproducible `lib/` artifacts, so GitHub installation does not need to run dependency lifecycle scripts.
 
 Local development (build first, then install):
 
@@ -93,6 +95,17 @@ Override with `- set:` or `- update:` in the profile's `cordis.patch.yml`.
 - Depends on the host frontend `CodeBlock`'s stable hooks (the literal `md-code-block` class and the infostring text); selectors need to be kept in sync if the upstream renderer is refactored.
 - Nothing renders during streaming; rendering happens after a message settles.
 - Under `securityLevel: strict`, mermaid's click interactions are unavailable.
+
+## DSH compatibility
+
+- DSH `0.1.0-rc.5`: locally exercised end to end.
+- DSH `0.1.0-rc.8`: official `CodeBlock`, composer, and Chinese/English locale source contracts audited.
+- Mermaid is pinned to `11.16.1`; all 38 registered public diagram types pass the real-browser render matrix,
+  with external ZenUML syntax retained as an expected unsupported case.
+
+DSH does not yet expose a fenced-code renderer extension point, so this release uses a tested,
+centralized DOM compatibility adapter. See [DSH compatibility](docs/dsh-compatibility.md)
+for the host hooks, upgrade checklist, and proposed migration to a public API.
 
 ## Mermaid compatibility checks
 
