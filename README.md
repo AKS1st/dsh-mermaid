@@ -19,7 +19,7 @@
 ## 工作方式
 
 - **Host 半部**（`src/index.ts`）：注册 `webServer` 前缀路由 `/mermaid-dist`，从插件自己的 `node_modules/mermaid` 惰性提供 UMD 构建，并提供固定的 `config.json` 端点。
-- **Client 半部**（`src/client/`）：监听会话 DOM，把 infostring 为 `mermaid` 的围栏渲染为 SVG：
+- **Client 半部**（`src/client/`）：监听会话 DOM，把语言为 `mermaid` 的围栏渲染为 SVG：
   1. 只处理**已定格**的围栏（流式输出期间不渲染）；
   2. 首次遇到围栏才惰性加载 mermaid（浏览器缓存一次）；
   3. **视口驱动渲染**：围栏进入视口（带 300px 预加载余量）才开始渲染，滚到哪渲染到哪；还在排队/加载中离开视口的图会停止渲染，回到视口再继续；
@@ -90,6 +90,6 @@ dsh plugin --profile web remove dsh-mermaid
 
 ## 已知限制
 
-- 依赖主前端 `CodeBlock` 的稳定钩子（字面量类 `md-code-block` 与 infostring 文本）；上游渲染器重构时需要同步更新选择器。
+- 依赖主前端的私有钩子：`CodeBlock` 的字面量类 `md-code-block`、围栏语言（较早的 DSH 版本取自标题栏的 infostring；代码卡片工具栏只显示可高亮的语言、把 mermaid 标为 “Code block”，因此改取 `CodeBlock` 的 React `lang` 属性），以及流式回复上的 `data-streaming` 属性；上游渲染器重构时需要同步更新。
 - 流式输出期间不渲染，定格后才渲染。
 - `securityLevel: strict` 下 mermaid 的点击交互不可用。

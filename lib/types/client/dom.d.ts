@@ -35,8 +35,13 @@ export interface MermaidRenderEnv {
 }
 /** Stable literal class CodeBlock applies to every fence wrapper. */
 export declare const CODE_BLOCK_SELECTOR = ".md-code-block";
-/** The banner element's readable class segment (css-module keeps it). */
+/**
+ * Readable class segment of the banner element that showed the raw info
+ * string, in DSH builds before the shared code-card toolbar (css-module keeps it).
+ */
 export declare const INFOSTRING_SEGMENT = "infostring";
+/** Attribute DSH sets on an assistant message's root while that reply streams. */
+export declare const STREAMING_ATTR = "data-streaming";
 /** Attribute marking a block this plugin already processed. */
 export declare const RENDERED_ATTR = "data-dsh-mermaid";
 /** Attribute marking a block whose render failed (no retry loop). */
@@ -55,8 +60,24 @@ export declare const OVERLAY_CLASS = "dsh-mermaid-overlay";
 export declare const STAGE_CLASS = "dsh-mermaid-stage";
 /** Class toggled on the stage while a middle-button pan drag is active. */
 export declare const STAGE_DRAGGING_CLASS = "dsh-mermaid-dragging";
-/** Whether `block` is a mermaid fence (infostring text is exactly `mermaid`). */
+/**
+ * The fence's info-string language. Older DSH builds print it in the banner.
+ * The code-card toolbar prints only languages shiki can highlight (mermaid
+ * reads "Code block"), so there it comes from CodeBlock's `lang` prop.
+ * @param block - the `.md-code-block` element.
+ * @returns the language, or undefined when the fence has none.
+ */
+export declare function fenceLanguage(block: HTMLElement): string | undefined;
+/** Whether `block` is a mermaid fence (its info-string language is exactly `mermaid`). */
 export declare function isMermaidBlock(block: HTMLElement): boolean;
+/**
+ * Whether the fence content is final. A fence inside a streaming reply, or
+ * one CodeBlock still renders as streaming, may grow. A fence only goes from
+ * streaming to settled, so either fiber generation reporting a settled render
+ * means the current one has settled.
+ * @param block - the `.md-code-block` element.
+ */
+export declare function isSettled(block: HTMLElement): boolean;
 /** The fence source: the `<pre>` text minus the trailing newline CodeBlock trims on display. */
 export declare function fenceSource(block: HTMLElement): string;
 /** Resolve the mermaid theme from config + the GUI's dark-mode attribute. */
@@ -154,11 +175,10 @@ export declare function openOverlay(block: HTMLElement): void;
 /**
  * Process every currently-settled mermaid fence in the document: register it
  * with the lazy viewport observer (or enqueue it directly when the observer is
- * unavailable) rather than rendering immediately. Settled-only by
- * construction: while a message streams, CodeBlock renders fences with an
- * empty infostring (lang is suppressed mid-stream), so the infostring test
- * never matches until the settle pass — the same policy the product applies
- * to KaTeX.
+ * unavailable) rather than rendering immediately. A fence that is still
+ * streaming (see {@link isSettled}) is skipped untracked, so the scan after
+ * its message settles picks it up with the final source — the same policy
+ * the product applies to KaTeX.
  * @param env - the render environment.
  */
 export declare function scan(env: MermaidRenderEnv): void;

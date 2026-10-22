@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  CODE_BLOCK_SELECTOR, ERROR_ATTR, ERROR_BAR_CLASS, HOST_CLASS, INFOSTRING_SEGMENT, LOADING_CLASS, OVERLAY_CLASS, RENDERED_ATTR, STAGE_CLASS, STAGE_DRAGGING_CLASS, ZOOM_BUTTON_CLASS,
-  __resetForTests, buildErrorReport, ensureZoomButton, fenceSource, isMermaidBlock, openOverlay, reRenderAll, removeStrayErrorElements, renderBlock, scan, sendToAI, showErrorBar,
+  CODE_BLOCK_SELECTOR, ERROR_ATTR, ERROR_BAR_CLASS, HOST_CLASS, INFOSTRING_SEGMENT, LOADING_CLASS, OVERLAY_CLASS, RENDERED_ATTR, STAGE_CLASS, STAGE_DRAGGING_CLASS, STREAMING_ATTR, ZOOM_BUTTON_CLASS,
+  __resetForTests, buildErrorReport, ensureZoomButton, fenceLanguage, fenceSource, isMermaidBlock, isSettled, openOverlay, reRenderAll, removeStrayErrorElements, renderBlock, scan, sendToAI, showErrorBar,
   type MermaidApi, type MermaidRenderEnv,
 } from '../src/client/dom.ts'
 import { STYLE_ID, mountStyles } from '../src/client/styles.ts'
@@ -49,6 +49,44 @@ function tsBlock(source: string): HTMLElement {
   code.textContent = source
   pre.append(code)
   block.append(bannerWrap, pre)
+  document.body.append(block)
+  return block
+}
+
+interface CodeCardOptions {
+  /** CodeBlock's `lang` prop. */
+  lang?: string
+  /** CodeBlock's `streaming` prop on the fiber the DOM node points at. */
+  streaming?: boolean
+  /** The other fiber generation's `streaming` prop; omitted = no alternate. */
+  alternateStreaming?: boolean
+  /** Skip the React fiber, as for a block React did not render. */
+  noFiber?: boolean
+}
+
+/**
+ * Build a fence as the code-card CodeBlock renders it (DSH since the shared
+ * code toolbar): the toolbar labels an unhighlightable language "Code block",
+ * so the language lives only on the React fiber of the component.
+ */
+function codeCardBlock(source: string, options: CodeCardOptions = {}): HTMLElement {
+  const block = document.createElement('div')
+  block.className = `_block_7gxqk_4 ${CODE_BLOCK_SELECTOR.slice(1)} _card_7gxqk_107`
+  block.setAttribute('data-code-wrap', 'true')
+  block.innerHTML = '<div class="_bannerWrap_7gxqk_24"><div class="_header_1pq26_10" data-code-block-banner>'
+    + '<div class="_heading_1pq26_23"><span class="_language_1pq26_30">Code block</span></div>'
+    + '<div class="_actions_1pq26_43"><button type="button" class="_action_1pq26_43" aria-label="Wrap lines"></button>'
+    + '<button type="button" class="_action_1pq26_43" aria-label="Copy"></button></div></div></div>'
+    + '<div class="_content_7gxqk_74" data-code-block-content><pre class="_plain_7gxqk_103"><code></code></pre></div>'
+  block.querySelector('code')!.textContent = source
+  if (options.noFiber !== true) {
+    const props = (streaming: boolean | undefined) => ({ code: `${source}\n`, lang: options.lang, streaming, copyLabel: 'Copy', copiedLabel: 'Copied' })
+    const codeBlockFiber = { memoizedProps: props(options.streaming), return: null, alternate: null as unknown }
+    if (options.alternateStreaming !== undefined) {
+      codeBlockFiber.alternate = { memoizedProps: props(options.alternateStreaming), return: null, alternate: codeBlockFiber }
+    }
+    Object.assign(block, { '__reactFiber$test': { memoizedProps: { className: block.className }, return: codeBlockFiber, alternate: null } })
+  }
   document.body.append(block)
   return block
 }
@@ -194,6 +232,66 @@ describe('isMermaidBlock', () => {
     const info = block.querySelector<HTMLElement>(`[class*="${INFOSTRING_SEGMENT}"]`)
     info!.textContent = ''
     expect(isMermaidBlock(block)).toBe(false)
+  })
+})
+
+describe('code-card fences', () => {
+  it('reads the language from CodeBlock props when the toolbar shows the generic label', () => {
+    const block = codeCardBlock('graph TD; A-->B', { lang: 'mermaid', streaming: false })
+    expect(fenceLanguage(block)).toBe('mermaid')
+    expect(isMermaidBlock(block)).toBe(true)
+  })
+
+  it('rejects code-card fences in other languages, without a language, or not rendered by React', () => {
+    expect(isMermaidBlock(codeCardBlock('const x = 1', { lang: 'ts' }))).toBe(false)
+    expect(isMermaidBlock(codeCardBlock('graph TD; A-->B'))).toBe(false)
+    expect(isMermaidBlock(codeCardBlock('graph TD; A-->B', { noFiber: true }))).toBe(false)
+  })
+
+  it('is unsettled inside a streaming reply', () => {
+    const reply = document.createElement('div')
+    reply.setAttribute(STREAMING_ATTR, 'true')
+    document.body.append(reply)
+    const block = codeCardBlock('graph TD; A-->B', { lang: 'mermaid', streaming: false })
+    reply.append(block)
+    expect(isSettled(block)).toBe(false)
+  })
+
+  it('is unsettled while every fiber generation still renders it as streaming', () => {
+    expect(isSettled(codeCardBlock('graph TD', { lang: 'mermaid', streaming: true }))).toBe(false)
+    expect(isSettled(codeCardBlock('graph TD', { lang: 'mermaid', streaming: true, alternateStreaming: true }))).toBe(false)
+  })
+
+  it('is settled once either fiber generation renders it settled', () => {
+    expect(isSettled(codeCardBlock('graph TD', { lang: 'mermaid', streaming: true, alternateStreaming: false }))).toBe(true)
+    expect(isSettled(codeCardBlock('graph TD', { lang: 'mermaid', streaming: false }))).toBe(true)
+    expect(isSettled(codeCardBlock('graph TD', { noFiber: true }))).toBe(true)
+  })
+
+  it('renders only after the reply settles, with the final source', async () => {
+    const reply = document.createElement('div')
+    reply.setAttribute(STREAMING_ATTR, 'true')
+    document.body.append(reply)
+    const block = codeCardBlock('graph TD; A-->B', { lang: 'mermaid', streaming: true })
+    reply.append(block)
+    scan(env())
+    await settle()
+    expect(block.querySelector('pre')).not.toBeNull()
+    expect(block.hasAttribute(RENDERED_ATTR)).toBe(false)
+
+    reply.removeAttribute(STREAMING_ATTR)
+    block.querySelector('code')!.textContent = 'graph TD; A-->B; B-->C'
+    Object.assign(block, { '__reactFiber$test': { memoizedProps: {}, return: { memoizedProps: { code: 'graph TD; A-->B; B-->C\n', lang: 'mermaid', streaming: false }, return: null, alternate: null }, alternate: null } })
+    scan(env())
+    await vi.waitFor(() => {
+      expect(block.querySelector(`.${HOST_CLASS} svg`)).not.toBeNull()
+    })
+    expect(fakeMermaid.lastSource).toBe('graph TD; A-->B; B-->C')
+    expect(block.querySelector('pre')).toBeNull()
+    expect(block.querySelector('[data-code-block-banner] [class*="language"]')?.textContent).toBe('Code block')
+    const actions = block.querySelector('[class*="actions"]')!
+    expect(actions.firstElementChild?.classList.contains(ZOOM_BUTTON_CLASS)).toBe(true)
+    expect(actions.querySelectorAll('button')).toHaveLength(3)
   })
 })
 

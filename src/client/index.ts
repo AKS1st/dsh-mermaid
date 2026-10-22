@@ -5,8 +5,8 @@
  * renderer has no mermaid branch and its shiki allowlist has no mermaid
  * grammar), so this plugin post-processes the settled message DOM:
  *
- *   1. A MutationObserver watches the conversation for `.md-code-block`
- *      elements whose infostring is `mermaid`.
+ *   1. A MutationObserver watches the conversation for settled
+ *      `.md-code-block` elements whose fence language is `mermaid`.
  *   2. The mermaid UMD build is loaded lazily (once) from the host route.
  *      Rendering itself is viewport-driven: a fence only renders when it
  *      scrolls into view (with a small preload margin), diagrams render one
@@ -25,7 +25,7 @@
  */
 
 import { CONFIG_ROUTE, DIST_PREFIX, MERMAID_BUNDLE, DEFAULT_CONFIG, validateConfig, type MermaidConfig } from '../protocol.ts'
-import { scan, reRenderAll, applyTheme, dispose, removeStrayErrorElements, type MermaidApi, type MermaidRenderEnv } from './dom.ts'
+import { STREAMING_ATTR, scan, reRenderAll, applyTheme, dispose, removeStrayErrorElements, type MermaidApi, type MermaidRenderEnv } from './dom.ts'
 import { mountStyles } from './styles.ts'
 
 /** The `window.mermaid` global the UMD build installs. */
@@ -102,10 +102,10 @@ export function apply(ctx: ClientContext): void {
     // the page body (the bottom-left "Syntax error in text" popup).
     removeStrayErrorElements()
 
-    // Settled messages mount new DOM (or swap streaming → settled nodes), so
-    // watch the whole document for added nodes and re-scan.
+    // Settled messages mount new DOM, and a reply that finishes streaming may
+    // only drop its streaming attribute, so watch both and re-scan.
     const observer = new MutationObserver(() => scan(env))
-    observer.observe(document.body, { childList: true, subtree: true })
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: [STREAMING_ATTR] })
 
     // Theme: re-render existing diagrams when light/dark flips.
     const themeObserver = new MutationObserver(() => {

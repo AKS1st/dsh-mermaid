@@ -19,7 +19,7 @@ The zoom overlay auto-fits the diagram to the screen (near full-screen with a sm
 ## How it works
 
 - **Host half** (`src/index.ts`): registers the `webServer` prefix route `/mermaid-dist`, lazily serves the mermaid UMD build from the plugin's own `node_modules/mermaid`, and exposes a fixed `config.json` endpoint.
-- **Client half** (`src/client/`): watches the conversation DOM and renders fences whose infostring is `mermaid` to SVG:
+- **Client half** (`src/client/`): watches the conversation DOM and renders fences whose language is `mermaid` to SVG:
   1. Only **settled** fences are processed (nothing renders mid-stream);
   2. The mermaid bundle is loaded lazily on first use (cached by the browser afterwards);
   3. **Viewport-driven rendering**: a fence only starts rendering when it scrolls into view (with a 300px preload margin) — render where you look; a diagram that leaves the viewport while queued or loading stops rendering and resumes on re-entry;
@@ -90,6 +90,6 @@ Override with `- set:` or `- update:` in the profile's `cordis.patch.yml`.
 
 ## Known limitations
 
-- Depends on the host frontend `CodeBlock`'s stable hooks (the literal `md-code-block` class and the infostring text); selectors need to be kept in sync if the upstream renderer is refactored.
+- Depends on private hooks of the host frontend: the literal `md-code-block` class on `CodeBlock`, the fence language (the banner infostring in older DSH builds; `CodeBlock`'s React `lang` prop since the code-card toolbar, which prints only languages it can highlight and labels mermaid "Code block"), and the `data-streaming` attribute of a streaming reply. They need to be kept in sync if the upstream renderer is refactored.
 - Nothing renders during streaming; rendering happens after a message settles.
 - Under `securityLevel: strict`, mermaid's click interactions are unavailable.

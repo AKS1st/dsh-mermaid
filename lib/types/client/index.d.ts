@@ -5,8 +5,8 @@
  * renderer has no mermaid branch and its shiki allowlist has no mermaid
  * grammar), so this plugin post-processes the settled message DOM:
  *
- *   1. A MutationObserver watches the conversation for `.md-code-block`
- *      elements whose infostring is `mermaid`.
+ *   1. A MutationObserver watches the conversation for settled
+ *      `.md-code-block` elements whose fence language is `mermaid`.
  *   2. The mermaid UMD build is loaded lazily (once) from the host route.
  *      Rendering itself is viewport-driven: a fence only renders when it
  *      scrolls into view (with a small preload margin), diagrams render one
